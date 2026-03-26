@@ -1,0 +1,73 @@
+services:
+
+  # --------------------------------------------------------------------------
+  # DATA PLANE — customer-facing inference API
+  #
+  # This is what your customers call instead of OpenAI. It routes each request
+  # to the best fine-tuned SLM or falls back to a large model.
+  #
+  # In production: internet-facing, behind a load balancer, autoscaled.
+  # --------------------------------------------------------------------------
+  data-plane:
+    build:
+      context: .
+      target: data-plane
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      - MODALITY_DATABASE_URL=postgresql+asyncpg://modality:modality@postgres:5432/modality
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+
+  # --------------------------------------------------------------------------
+  # CONTROL PLANE — internal management API
+  #
+  # Used by your team and customer dashboards to onboard customers, issue API
+  # keys, upload training data, kick off fine-tuning, and view usage/billing.
+  #
+  # In production: behind VPN or internal network, not internet-facing.
+  # --------------------------------------------------------------------------
+  control-plane:
+    build:
+      context: .
+      target: control-plane
+    ports:
+      - "8001:8001"
+    env_file: .env
+    environment:
+      - MODALITY_DATABASE_URL=postgresql+asyncpg://modality:modality@postgres:5432/modality
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      replicas: 1
+
+  # --------------------------------------------------------------------------
+  # DATABASE
+  # --------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: modality
+      POSTGRES_PASSWORD: modality
+      POSTGRES_DB: modality
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modality"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
