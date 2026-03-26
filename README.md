@@ -58,16 +58,15 @@ Modality handles the full lifecycle:
 └──────────────────────────────────────────────────────────────┘
 ```
 
-### Why two planes?
+### Data Plane (port 8000)
 
-The data plane handles thousands of requests per second and must respond in <200ms. The control plane handles a few requests per day (uploading data, starting fine-tune jobs). Separating them means:
+The customer-facing inference API. This is what your customers' apps call instead of OpenAI directly. It authenticates the request via API key, embeds the prompt, routes to the best fine-tuned SLM using cosine similarity, falls back to GPT-4o when confidence is low, and logs usage for billing. Internet-facing, behind a load balancer, autoscaled.
 
-- A slow fine-tune upload never causes latency spikes on inference
-- You scale them independently (20 data plane replicas, 1 control plane replica)
-- If the control plane goes down, all customer apps keep working
-- Different security posture: data plane is internet-facing, control plane is internal
+### Control Plane (port 8001)
 
-They share the same codebase and database — they're just different entry points deployed as separate services.
+The internal management API. Used by your team and customer dashboards to onboard customers, issue API keys, upload training data, kick off fine-tuning jobs, manage models (promote/demote), and view usage and cost savings. Internal only, behind a VPN or private subnet.
+
+Both planes share the same codebase and database — they're different entry points deployed as separate services.
 
 ## How customers use it
 
