@@ -182,34 +182,3 @@ The domain embeddings are generated when a model is fine-tuned, based on the `do
    ```
 
 3. Modality uploads the data to the provider, starts the fine-tuning job, polls for completion, runs an automated evaluation (LLM-as-judge), and promotes the model into the routing table if it scores above the threshold.
-
-## Project structure
-
-```
-modality/
-├── config.py                        # Settings and environment variables
-├── gateway/
-│   ├── data_plane.py                # Customer-facing inference API
-│   ├── control_plane.py             # Internal management API
-│   ├── auth.py                      # API key authentication
-│   └── schemas.py                   # Request/response models
-├── router/
-│   ├── router.py                    # Core routing logic
-│   ├── cache.py                     # In-memory model cache for the data plane
-│   └── schemas.py                   # RouteDecision model
-├── finetune/
-│   ├── pipeline.py                  # Fine-tune orchestration (upload → train → eval → promote)
-│   └── data.py                      # JSONL validation and train/eval splitting
-├── eval/
-│   └── evaluator.py                 # LLM-as-judge evaluation
-├── providers/
-│   ├── base.py                      # Abstract provider interface
-│   ├── openai_provider.py           # OpenAI integration
-│   ├── fireworks_provider.py        # Fireworks integration
-│   ├── embeddings.py                # Embedding API for the router
-│   └── registry.py                  # Provider factory
-└── registry/
-    ├── database.py                  # Async SQLAlchemy setup
-    ├── models.py                    # DB models (Customer, Model, Job, ApiKey, UsageLog)
-    └── service.py                   # CRUD operations
-```
